@@ -1,0 +1,18 @@
+{
+  "name": "lisk_bot",
+  "packageManager": "yarn@4.3.1",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "inquirer": "^12.3.0",
+    "viem": "^2.21.57",
+    "web3": "^4.16.0"
+  },
+  "scripts": {
+    "start": "tsx --env-file=.env index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "type": "module"
+}
