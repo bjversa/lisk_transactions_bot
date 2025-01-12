@@ -1,12 +1,11 @@
 import axios from "axios";
-import Web3, { Contract } from "web3";
-
+import { Contract, Provider } from "ethers";
 
 export class ContractService {
   private readonly baseApiUrl = "https://blockscout.lisk.com/api/v2";
 
   constructor(
-    private readonly client: Web3
+    private readonly provider: Provider
   ) { };
 
   async getContract(contractAddress: string) {
@@ -22,7 +21,7 @@ export class ContractService {
       throw new Error("Contract ABI not found");
     }
 
-    const contract = new this.client.eth.Contract(abi, contractAddress);
+    const contract = new Contract(contractAddress, abi, this.provider);
 
     return contract;
   }

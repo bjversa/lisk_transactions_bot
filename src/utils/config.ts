@@ -2,7 +2,7 @@
 
 const config = {
   rpc: "https://rpc.api.lisk.com",
- 
+  chainId: 1135
 }
 
 const contracts = {
@@ -21,7 +21,8 @@ const contracts = {
   poolLensAddress: "0xcD4D7c8e2bA627684a9B18F7fe88239341D3ba5c",
   comptrollerAddress: "0xF448A36feFb223B8E46e36FF12091baBa97bdF60",
   wethAddress: "0x4200000000000000000000000000000000000006",
-  permitSwapAddress: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+  swapSpenderAddress: "0x447b8e40b0cda8e55f405c86bc635d02d0540ab8",
+  permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578"
 }
 
 export {

@@ -1,16 +1,18 @@
-import Web3, { Transaction } from "web3";
+import { providers, Transaction } from "ethers";
 
 
 export class GasService {
   constructor(
-    private readonly client: Web3
+    private readonly provider: providers.Provider,
   ) { }
 
-  async estimateGasCosts(transaction: Transaction) {
-    const estimatedGas = await this.client.eth.estimateGas(transaction);
+  async estimateGasCosts(transaction: providers.TransactionRequest) {
+    console.log('AQUI')
+    const estimatedGas = await this.provider.estimateGas(transaction);
 
-    const gasPrice = await this.client.eth.getGasPrice();
+    const gasPrice = await this.provider.getGasPrice();
 
+    console.log('AQUI 2')
     return {
       estimatedGas,
       gasPrice

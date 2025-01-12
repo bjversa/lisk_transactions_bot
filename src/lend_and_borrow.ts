@@ -8,7 +8,8 @@ import { maxUint256, parseUnits } from "viem";
 export class LendAndBorrowService {
   constructor(
     private readonly client: Web3,
-    private readonly contractService: ContractService
+    private readonly contractService: ContractService,
+    private readonly gasService: GasService
   ) { }
 
   private async approveLend(account: Web3Account, tokenAddress: string, value: number) {
@@ -20,8 +21,6 @@ export class LendAndBorrowService {
       value * 10 ** 6
     ).encodeABI();
 
-    const gasService = new GasService(this.client);
-
     const tx = {
       from: account.address,
       to: contracts.approveLendContractAddress,
@@ -30,7 +29,7 @@ export class LendAndBorrowService {
 
     console.log('Estimating gas costs');
 
-    const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+    const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
@@ -59,8 +58,6 @@ export class LendAndBorrowService {
       value * 10 ** 6
     ).encodeABI();
 
-    const gasService = new GasService(this.client);
-
     const tx = {
       from: account.address,
       to: contracts.lendContractProxyAddress,
@@ -69,7 +66,7 @@ export class LendAndBorrowService {
 
     console.log('Estimating gas costs');
 
-    const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+    const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
@@ -109,8 +106,6 @@ export class LendAndBorrowService {
       [contracts.ionUSDTAddress]
     ).encodeABI();
 
-    const gasService = new GasService(this.client);
-
     const tx = {
       from: account.address,
       to: contracts.enableCollateralProxyAddress,
@@ -119,7 +114,7 @@ export class LendAndBorrowService {
 
     console.log('Estimating gas costs');
 
-    const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+    const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
@@ -147,8 +142,6 @@ export class LendAndBorrowService {
       this.client.utils.toWei(minBorrowAmount.toString(), 'ether'),
     ).encodeABI();
 
-    const gasService = new GasService(this.client);
-
     const tx = {
       from: account.address,
       to: contracts.borrowContractProxyAddress,
@@ -157,7 +150,7 @@ export class LendAndBorrowService {
 
     console.log('Estimating gas costs');
 
-    const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+    const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
@@ -266,8 +259,6 @@ export class LendAndBorrowService {
       value
     ).encodeABI();
 
-    const gasService = new GasService(this.client);
-
     const tx = {
       from: account.address,
       to: contracts.wethAddress,
@@ -276,7 +267,7 @@ export class LendAndBorrowService {
 
     console.log('Estimating gas costs');
 
-    const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+    const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
@@ -306,8 +297,6 @@ export class LendAndBorrowService {
     ).encodeABI();
 
     try {
-      const gasService = new GasService(this.client);
-
       const tx = {
         from: account.address,
         to: contracts.borrowContractProxyAddress,
@@ -316,7 +305,7 @@ export class LendAndBorrowService {
 
       console.log('Estimating gas costs');
 
-      const { estimatedGas: gasCost, gasPrice } = await gasService.estimateGasCosts(tx);
+      const { estimatedGas: gasCost, gasPrice } = await this.gasService.estimateGasCosts(tx);
 
       console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
