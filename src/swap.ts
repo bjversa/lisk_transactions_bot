@@ -77,7 +77,6 @@ export class SwapService {
 
     const receipt = await this.provider.sendTransaction(swap);
     const hash = receipt.hash;
-    console.log('Swap performed with hash:', hash)
     return hash.toString();
   }
 
@@ -85,11 +84,8 @@ export class SwapService {
     let inToken = inTokenAddress
     let outToken = outTokenAddress
 
-    // const inTokenContract = this.contractService.getContract(inToken)
-    // const outTokenContract = this.contractService.getContract(outToken)
-
-    for (let i = 0; i < 1; i++) {
-      const bestSwapRoute = await this.fetchBestSwapRoute(account, "0xac485391EB2d7D88253a7F1eF18C37f4242D1A24", outToken, value)
+    for (let i = 0; i < amount; i++) {
+      const bestSwapRoute = await this.fetchBestSwapRoute(account, inToken, outToken, value)
       const hash = await this.performSwap(account, bestSwapRoute)
       inToken = bestSwapRoute.outToken.address
       outToken = bestSwapRoute.inToken.address
@@ -103,28 +99,29 @@ export class SwapService {
       console.log('--------------------------------------------\n\n')
       await new Promise(resolve => setTimeout(resolve, 5000))
     }
-
-    console.log('All swaps performed')
   }
 
   async swapPermit2Approval(account: Wallet, tokenAddress: string, value: number) {
     const allowanceProvider = new AllowanceProvider(this.provider, contracts.permit2Address);
     const { amount, expiration, nonce } = await allowanceProvider.getAllowanceData(
-      tokenAddress, 
-      account.address, 
+      tokenAddress,
+      account.address,
       contracts.swapSpenderAddress
     );
 
+    const isExpired = expiration * 1000 < Date.now();
 
-    if (amount.gte(MaxAllowanceTransferAmount)) {
+    if (!isExpired) {
+      console.log('Allowance not expired');
+      return true;
+    }
+
+    if (!isExpired && amount.gte(MaxAllowanceTransferAmount)) {
       console.log('Allowance already set');
       return true;
     }
 
-    if (expiration > Date.now()) {
-      console.log('Allowance not expired');
-      return true;
-    }
+    console.warn("Approving allowance with permit2");
 
     const toDeadline = (expiration: number) => Math.floor((Date.now() + expiration) / 100);
 
@@ -140,7 +137,7 @@ export class SwapService {
     }
 
     const { domain, types, values } = AllowanceTransfer.getPermitData(permitSingle, contracts.permit2Address, config.chainId);
-    
+
     const signature = await account._signTypedData(domain, types, values);
 
     const permitAbiMock = [
@@ -150,23 +147,37 @@ export class SwapService {
     const permitContract = new ethers.Contract(contracts.permit2Address, permitAbiMock, account);
     const gasPrice = await this.provider.getGasPrice();
 
-
     const response = await permitContract.permit(account.address, permitSingle, signature, {
       gasLimit: 500000,
       gasPrice
     });
 
-    if (!response){
+    if (!response) {
       throw new Error('Permit failed');
     }
 
     const tokenContract = await this.contractService.getContract(tokenAddress);
-    const allowance = await tokenContract.allowance(account.address, contracts.swapSpenderAddress);
 
-    console.log(allowance)
+    if (!tokenContract.allowance) {
+      const implementationContract = await tokenContract.implementation();
 
-    if (allowance > 0) {
-      return true;
+      if (!implementationContract) {
+        throw new Error('Implementation contract not found');
+      }
+
+      const tokenImplementationContract = await this.contractService.getContract(implementationContract);
+
+      const allowance = await tokenImplementationContract.allowance(account.address, contracts.swapSpenderAddress);
+
+      if (allowance > 0) {
+        return true;
+      }
+    } else {
+      const allowance = await tokenContract.allowance(account.address, contracts.swapSpenderAddress);
+
+      if (allowance > 0) {
+        return true;
+      }
     }
 
     const approveResponse = await tokenContract.approve(contracts.swapSpenderAddress, MaxAllowanceTransferAmount, {

@@ -20,7 +20,7 @@ async function main() {
     const defaultInTokenAddress = tokens[inTokenSymbol];
     const defaultOutTokenAddress = tokens[outTokenSymbol];
 
-    const provider = new ethers.providers.JsonRpcProvider(config.rpc);
+    const provider = new ethers.providers.JsonRpcProvider(config.rpc, { chainId: config.chainId, name: 'lisk' });
     const account = new ethers.Wallet(process.env.PK, provider);
 
     const contractService = new ContractService(provider);
@@ -30,27 +30,33 @@ async function main() {
       case 'Swap':
         const swapService = new SwapService(provider, account, contractService, gasService);
         const SWAP_VALUE = 0.05; // $0.05
-        const couldSetAllowance = await swapService.swapPermit2Approval(account, defaultInTokenAddress, SWAP_VALUE);
-        if (!couldSetAllowance) {
+        const couldSetOriginAllowance = await swapService.swapPermit2Approval(account, defaultInTokenAddress, SWAP_VALUE);
+        if (!couldSetOriginAllowance) {
           console.error('Could not set allowance')
           process.exit(1)
         }
+
+        if (amount > 1 && defaultOutTokenAddress !== defaultInTokenAddress) {
+          const couldSetOutAllowance = await swapService.swapPermit2Approval(account, defaultOutTokenAddress, SWAP_VALUE);
+          if (!couldSetOutAllowance) {
+            console.error('Could not set out allowance')
+            process.exit(1)
+          }
+        }
+
         await swapService.loopSwap(account, defaultInTokenAddress, defaultOutTokenAddress, amount, SWAP_VALUE)
         break;
       case 'Lend/Borrow':
-        const lendAndBorrowService = new LendAndBorrowService(provider, contractService, gasService);
+        const lendAndBorrowService = new LendAndBorrowService(provider, account, contractService, gasService);
 
-        // await lendAndBorrowService.lend(account, defaultInTokenAddress, 1);
-        // await lendAndBorrowService.enableCollateral(account, defaultInTokenAddress);
-        await lendAndBorrowService.borrow(account, defaultInTokenAddress);
-        // await lendAndBorrowService.repay(account, defaultInTokenAddress);
-
+        await lendAndBorrowService.lend(defaultInTokenAddress, 1);
+        // await lendAndBorrowService.enableCollateral(defaultInTokenAddress);
+        // await lendAndBorrowService.borrow(defaultInTokenAddress);
+        // await lendAndBorrowService.repay(defaultInTokenAddress);
         break;
 
       default:
         break;
-
-
     }
 
   } catch (error) {

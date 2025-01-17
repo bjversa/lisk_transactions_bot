@@ -1,31 +1,33 @@
-import Web3, { Web3Account } from "web3";
 import { ContractService } from "./contract";
 import { config, contracts } from "./utils/config";
 import { GasService } from "./gas";
 import { PoolAsset } from "./types/pool_assets";
 import { maxUint256, parseUnits } from "viem";
+import { ethers, providers, Wallet } from "ethers";
 
 export class LendAndBorrowService {
   constructor(
-    private readonly client: Web3,
+    private readonly provider: providers.Provider,
+    private readonly account: Wallet,
     private readonly contractService: ContractService,
     private readonly gasService: GasService
   ) { }
 
-  private async approveLend(account: Web3Account, tokenAddress: string, value: number) {
+  private async approveLend(tokenAddress: string, value: number) {
     console.log(`Approving ${value} tokens of ${tokenAddress} to be lent`);
     const contract = await this.contractService.getContract(contracts.approveLendContractAddress);
 
-    const transactionData = contract.methods.approve(
+    const transactionData = await contract.populateTransaction.approve(
       contracts.lendContractProxyAddress,
       value * 10 ** 6
-    ).encodeABI();
+    );
 
     const tx = {
-      from: account.address,
+      from: this.account.address,
       to: contracts.approveLendContractAddress,
-      data: transactionData,
+      data: transactionData.data,
     }
+    
 
     console.log('Estimating gas costs');
 
@@ -34,34 +36,35 @@ export class LendAndBorrowService {
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
     console.log('Signing transaction');
-    const signedTx = await this.client.eth.accounts.signTransaction({
-      from: account.address,
+    const signedTx = await this.account.signTransaction({
+      from: this.account.address,
       to: contracts.approveLendContractAddress,
-      data: transactionData,
-      gas: gasCost,
+      data: transactionData.data,
+      gasLimit: gasCost,
       gasPrice,
-      nonce: await this.client.eth.getTransactionCount(account.address),
-    }, account.privateKey);
+      chainId: config.chainId,
+      nonce: await this.provider.getTransactionCount(this.account.address),
+    });
 
-    const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const receipt = await this.provider.sendTransaction(signedTx);
 
-    console.log('Transaction hash:', receipt.transactionHash)
-    console.log('\n\n');
-    return receipt.transactionHash;
+    console.log('Transaction hash:', receipt.hash)
+    console.log('\n');
+    return receipt.hash;
   }
 
-  private async executeLend(account: Web3Account, tokenAddress: string, value: number) {
+  private async executeLend(tokenAddress: string, value: number) {
     console.log(`Lending ${value} tokens of ${tokenAddress}`);
     const contract = await this.contractService.getContract(contracts.lendContractImplementationAddress);
 
-    const transactionData = contract.methods.mint(
+    const transactionData = await contract.populateTransaction.mint(
       value * 10 ** 6
-    ).encodeABI();
+    )
 
     const tx = {
-      from: account.address,
+      from: this.account.address,
       to: contracts.lendContractProxyAddress,
-      data: transactionData,
+      data: transactionData.data,
     }
 
     console.log('Estimating gas costs');
@@ -71,34 +74,35 @@ export class LendAndBorrowService {
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
     console.log('Signing transaction');
-    const signedTx = await this.client.eth.accounts.signTransaction({
-      from: account.address,
+    const signedTx = await this.account.signTransaction({
+      from: this.account.address,
       to: contracts.lendContractProxyAddress,
-      data: transactionData,
-      gas: gasCost,
+      data: transactionData.data,
+      gasLimit: gasCost,
       gasPrice,
-      nonce: await this.client.eth.getTransactionCount(account.address),
-    }, account.privateKey);
+      chainId: config.chainId,
+      nonce: await this.provider.getTransactionCount(this.account.address),
+    });
 
-    const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const receipt = await this.provider.sendTransaction(signedTx);
 
-    console.log('Transaction hash:', receipt.transactionHash)
-    return receipt.transactionHash;
+    console.log('Transaction hash:', receipt.hash)
+    return receipt.hash;
   }
 
-  async lend(account: Web3Account, tokenAddress: string, value: number) {
-    const { balance, underlyingDecimals } = await this.getUserBalance(account, tokenAddress);
+  async lend(tokenAddress: string, value: number) {
+    const { balance, underlyingDecimals } = await this.getUserBalance(tokenAddress);
 
     if (balance < parseUnits(value.toString(), Number(underlyingDecimals))) {
       console.error('Insufficient balance');
       throw new Error('Insufficient balance');
     }
 
-    await this.approveLend(account, tokenAddress, value);
-    await this.executeLend(account, tokenAddress, value);
+    await this.approveLend(tokenAddress, value);
+    await this.executeLend(tokenAddress, value);
   }
 
-  async enableCollateral(account: Web3Account, tokenAddress: string) {
+  async enableCollateral(tokenAddress: string) {
     console.log(`Enabling ${tokenAddress} as collateral`);
     const contract = await this.contractService.getContract(contracts.enableCollateralImplementationAddress);
 
@@ -107,7 +111,7 @@ export class LendAndBorrowService {
     ).encodeABI();
 
     const tx = {
-      from: account.address,
+      from: this.account.address,
       to: contracts.enableCollateralProxyAddress,
       data: transactionData,
     }
@@ -119,31 +123,31 @@ export class LendAndBorrowService {
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
     console.log('Signing transaction');
-    const signedTx = await this.client.eth.accounts.signTransaction({
-      from: account.address,
+    const signedTx = await this.account.signTransaction({
+      from: this.account.address,
       to: contracts.enableCollateralProxyAddress,
       data: transactionData,
-      gas: gasCost,
+      // gas: gasCost,
       gasPrice,
-      nonce: await this.client.eth.getTransactionCount(account.address),
-    }, account.privateKey);
+      nonce: await this.provider.getTransactionCount(this.account.address),
+    });
 
-    const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const receipt = await this.provider.sendTransaction(signedTx);
 
-    console.log('Transaction hash:', receipt.transactionHash)
-    return receipt.transactionHash;
+    console.log('Transaction hash:', receipt.hash)
+    return receipt.hash;
   }
 
-  async borrow(account: Web3Account, tokenAddress: string) {
+  async borrow(tokenAddress: string) {
     const borrowContract = await this.contractService.getContract(contracts.borrowContractImplementationAddress);
-    const minBorrowAmount = await this.getMinBorrowAmount(account);
+    const minBorrowAmount = await this.getMinBorrowAmount();
 
     const transactionData = borrowContract.methods.borrow(
-      this.client.utils.toWei(minBorrowAmount.toString(), 'ether'),
+      ethers.utils.formatEther(minBorrowAmount),
     ).encodeABI();
 
     const tx = {
-      from: account.address,
+      from: this.account.address,
       to: contracts.borrowContractProxyAddress,
       data: transactionData,
     }
@@ -155,29 +159,29 @@ export class LendAndBorrowService {
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
     console.log('Signing transaction');
-    const signedTx = await this.client.eth.accounts.signTransaction({
-      from: account.address,
+    const signedTx = await this.account.signTransaction({
+      from: this.account.address,
       to: contracts.borrowContractProxyAddress,
       data: transactionData,
-      gas: gasCost,
+      // gas: gasCost,
       gasPrice,
-      nonce: await this.client.eth.getTransactionCount(account.address),
-    }, account.privateKey);
+      nonce: await this.provider.getTransactionCount(this.account.address),
+    });
 
-    const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const receipt = await this.provider.sendTransaction(signedTx);
 
-    console.log('Transaction hash:', receipt.transactionHash)
-    return receipt.transactionHash;
+    console.log('Transaction hash:', receipt.hash)
+    return receipt.hash;
   }
 
-  async repay(account: Web3Account, tokenAddress: string) {
-    const borrowedTokenData = await this.getAccountPoolInfo(account);
+  async repay(tokenAddress: string) {
+    const borrowedTokenData = await this.getAccountPoolInfo();
 
     const borrowBalance = borrowedTokenData.borrowBalance;
     const underlyingDecimals = borrowedTokenData.underlyingDecimals;
     const underlyingToken = borrowedTokenData.underlyingToken;
 
-    const balance = await this.getUserBalance(account, borrowedTokenData.underlyingToken);
+    const balance = await this.getUserBalance(borrowedTokenData.underlyingToken);
 
     if (borrowBalance === 0n) {
       console.log('No borrow balance to repay');
@@ -185,22 +189,20 @@ export class LendAndBorrowService {
     }
 
 
-    // const balance = await this.getBalanceForRepay(account, borrowedTokenData.underlyingToken);
-    await this.approveRepay(account, tokenAddress, borrowBalance);
-    await this.repayBorrow(account, tokenAddress, borrowBalance);
+    // const balance = await this.getBalanceForRepay(borrowedTokenData.underlyingToken);
+    await this.approveRepay(tokenAddress, borrowBalance);
+    await this.repayBorrow(tokenAddress, borrowBalance);
 
     return;
   }
 
-  private async getUserBalance(account: Web3Account, tokenAddress: string) {
+  private async getUserBalance(tokenAddress: string) {
     const contract = await this.contractService.getContract(tokenAddress);
+    const symbol = await contract.symbol();
+    
+    const underlyingDecimals = await contract.decimals() as bigint;
 
-    const symbol = await contract.methods.symbol().call();
-    const underlyingDecimals = await contract.methods.decimals().call() as bigint;
-
-    const balance = await contract.methods.balanceOf(account.address).call({
-      from: account.address
-    }) as bigint;
+    const balance = await contract.balanceOf(this.account.address);
 
     console.log('User balance for', symbol, ':', balance);
 
@@ -210,31 +212,31 @@ export class LendAndBorrowService {
     };
   }
 
-  private async getMinBorrowAmount(account: Web3Account) {
+  private async getMinBorrowAmount() {
     const contract = await this.contractService.getContract(contracts.feeDistributorImplementationAddress);
 
     const data = contract.methods.getMinBorrowEth(
       contracts.ionWETHAddress
     ).encodeABI();
 
-    const minBorrowAmount = await this.client.eth.call({
+    const minBorrowAmount = await this.provider.call({
       to: contracts.feeDistributorProxyAddress,
-      from: account.address,
+      from: this.account.address,
       data,
     });
 
-    const minBorrowAmountInEth = this.client.utils.fromWei(minBorrowAmount, 'ether');
+    const minBorrowAmountInEth = ethers.utils.formatEther(minBorrowAmount);
     console.log('Min borrow amount in ETH:', minBorrowAmountInEth);
     return minBorrowAmountInEth;
   }
 
-  private async getAccountPoolInfo(account: Web3Account) {
+  private async getAccountPoolInfo() {
     const contract = await this.contractService.getContract(contracts.poolLensAddress);
 
     const accountPoolInfo = await contract.methods.getPoolAssetsWithData(
       contracts.comptrollerAddress
     ).call({
-      from: account.address
+      from: this.account.address
     })
 
     if (!accountPoolInfo) {
@@ -250,17 +252,17 @@ export class LendAndBorrowService {
     return dataByToken;
   }
 
-  private async approveRepay(account: Web3Account, tokenAddress: string, value: bigint) {
+  private async approveRepay(tokenAddress: string, value: bigint) {
     console.log(`Approving ${value} tokens of ${tokenAddress} to be repaid`);
     const contract = await this.contractService.getContract(contracts.wethAddress);
 
-    const transactionData = contract.methods.approve(
+    const transactionData = contract.approve(
       contracts.ionWETHAddress,
       value
     ).encodeABI();
 
     const tx = {
-      from: account.address,
+      from: this.account.address,
       to: contracts.wethAddress,
       data: transactionData,
     }
@@ -272,23 +274,23 @@ export class LendAndBorrowService {
     console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
     console.log('Signing transaction');
-    const signedTx = await this.client.eth.accounts.signTransaction({
-      from: account.address,
+    const signedTx = await this.account.signTransaction({
+      from: this.account.address,
       to: contracts.wethAddress,
       data: transactionData,
-      gas: gasCost,
+      // gas: gasCost,
       gasPrice,
-      nonce: await this.client.eth.getTransactionCount(account.address),
-    }, account.privateKey);
+      nonce: await this.provider.getTransactionCount(this.account.address),
+    });
 
-    const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+    const receipt = await this.provider.sendTransaction(signedTx);
 
-    console.log('Transaction hash:', receipt.transactionHash)
+    console.log('Transaction hash:', receipt.hash)
     console.log('\n\n');
-    return receipt.transactionHash;
+    return receipt.hash;
   }
 
-  private async repayBorrow(account: Web3Account, tokenAddress: string, value: bigint) {
+  private async repayBorrow(tokenAddress: string, value: bigint) {
     console.log(`Repaying ${value} tokens of ${tokenAddress}`);
     const contract = await this.contractService.getContract(contracts.borrowContractImplementationAddress);
 
@@ -298,7 +300,7 @@ export class LendAndBorrowService {
 
     try {
       const tx = {
-        from: account.address,
+        from: this.account.address,
         to: contracts.borrowContractProxyAddress,
         data: transactionData,
       }
@@ -310,19 +312,19 @@ export class LendAndBorrowService {
       console.log(`Estimated gas cost: ${gasCost} / Estimated gas price: ${gasPrice}`);
 
       console.log('Signing transaction');
-      const signedTx = await this.client.eth.accounts.signTransaction({
-        from: account.address,
+      const signedTx = await this.account.signTransaction({
+        from: this.account.address,
         to: contracts.borrowContractProxyAddress,
         data: transactionData,
-        gas: gasCost,
+        // gas: gasCost,
         gasPrice,
-        nonce: await this.client.eth.getTransactionCount(account.address),
-      }, account.privateKey);
+        nonce: await this.provider.getTransactionCount(this.account.address),
+      });
 
-      const receipt = await this.client.eth.sendSignedTransaction(signedTx.rawTransaction);
+      const receipt = await this.provider.sendTransaction(signedTx);
 
-      console.log('Transaction hash:', receipt.transactionHash)
-      return receipt.transactionHash;
+      console.log('Transaction hash:', receipt.hash)
+      return receipt.hash;
     } catch (error) {
       console.error('Error repaying borrow:', error);
     }

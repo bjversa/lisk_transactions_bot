@@ -257,7 +257,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/bignumber@npm:5.7.0, @ethersproject/bignumber@npm:^5.5.0, @ethersproject/bignumber@npm:^5.7.0":
+"@ethersproject/bignumber@npm:5.7.0, @ethersproject/bignumber@npm:^5.7.0":
   version: 5.7.0
   resolution: "@ethersproject/bignumber@npm:5.7.0"
   dependencies:
@@ -879,16 +879,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@uniswap/conedison@npm:^1.8.0":
-  version: 1.8.0
-  resolution: "@uniswap/conedison@npm:1.8.0"
-  peerDependencies:
-    "@uniswap/sdk-core": ">=3"
-    ethers: ^5.6.1
-  checksum: 10c0/92b69ea27412a3ebcb25287139120cd4eb6e16bf5a65d9ebe3fe3cbef10c59750d537583fa04ef501b0239fa05c2704012d6628e99a22bca34562e31496bffc8
-  languageName: node
-  linkType: hard
-
 "@uniswap/permit2-sdk@npm:^1.3.0":
   version: 1.3.0
   resolution: "@uniswap/permit2-sdk@npm:1.3.0"
@@ -1334,18 +1324,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"evm-bn@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "evm-bn@npm:1.1.2"
-  dependencies:
-    "@ethersproject/bignumber": "npm:^5.5.0"
-    from-exponential: "npm:^1.1.1"
-  peerDependencies:
-    "@ethersproject/bignumber": 5.x
-  checksum: 10c0/18ae4f8cae76c46df3c09f5a493cb0f8245dccfbe501c72e35cde5e27a1a8fd8d4c72876e4448cdaba7da68916140385d892653cc951084a9f436f0fda4e105f
-  languageName: node
-  linkType: hard
-
 "exponential-backoff@npm:^3.1.1":
   version: 3.1.1
   resolution: "exponential-backoff@npm:3.1.1"
@@ -1392,13 +1370,6 @@ __metadata:
     combined-stream: "npm:^1.0.8"
     mime-types: "npm:^2.1.12"
   checksum: 10c0/bb102d570be8592c23f4ea72d7df9daa50c7792eb0cf1c5d7e506c1706e7426a4e4ae48a35b109e91c85f1c0ec63774a21ae252b66f4eb981cb8efef7d0463c8
-  languageName: node
-  linkType: hard
-
-"from-exponential@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "from-exponential@npm:1.1.1"
-  checksum: 10c0/b0f81fae79c94017e818f59e232a16dcdac9bffe005a2ca65cb6d9e9e3e8a694bd1b45e6bf7c3b5137cea74f4fb29e36a89a1472cfe28247aea2b12ac10cf85b
   languageName: node
   linkType: hard
 
@@ -1631,11 +1602,9 @@ __metadata:
   resolution: "lisk_bot@workspace:."
   dependencies:
     "@types/node": "npm:^22.10.5"
-    "@uniswap/conedison": "npm:^1.8.0"
     "@uniswap/permit2-sdk": "npm:^1.3.0"
     axios: "npm:^1.7.9"
     ethers: "npm:5.7.2"
-    evm-bn: "npm:^1.1.2"
     inquirer: "npm:^12.3.0"
     tsx: "npm:^4.19.2"
     typescript: "npm:^5.7.2"

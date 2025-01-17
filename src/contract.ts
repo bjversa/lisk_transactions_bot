@@ -1,11 +1,11 @@
 import axios from "axios";
-import { Contract, Provider } from "ethers";
+import { Contract, providers } from "ethers";
 
 export class ContractService {
   private readonly baseApiUrl = "https://blockscout.lisk.com/api/v2";
 
   constructor(
-    private readonly provider: Provider
+    private readonly provider: providers.Provider
   ) { };
 
   async getContract(contractAddress: string) {
